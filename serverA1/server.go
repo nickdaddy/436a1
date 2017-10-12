@@ -64,7 +64,6 @@ TODO: Decide if thread or function; Update to the new structure
 */
 func HandleNewClient(conn net.Conn) {
 	var found bool
-
 	if len(Clients) == 0 {
 		StartNewClient(conn)
 		found = true
