@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"time"
 	//"io/ioutil"
 	//"time"
 	"encoding/json"
@@ -42,13 +41,13 @@ func ReadStdIn() {
 	for {
 		txt, _ := reader.ReadString('\n')
 		//if err == nil {
-		fmt.Println("client read " + txt)
 		Sendchan <- txt
 
 		//}
 	}
 }
 
+/*Listen listens from server*/
 func Listen(conn net.Conn) {
 	decoder := json.NewDecoder(conn)
 	for {
@@ -60,15 +59,14 @@ func Listen(conn net.Conn) {
 	}
 }
 
+/*Send sends to server*/
 func Send(conn net.Conn) {
 	encoder := json.NewEncoder(conn)
 	for {
 		txt := <-Sendchan
-		fmt.Println("Sent msg to server")
 
-		msg := new(serverlib.Message)
-		msg.Body = txt
-		msg.Date = time.Now().String()
+		msg := serverlib.NewMessage(txt)
+
 		encoder.Encode(msg)
 	}
 }
