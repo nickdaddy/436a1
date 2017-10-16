@@ -1,42 +1,32 @@
 package main
 
 import (
+	"436a1repo/serverA1/serverlib"
 	"encoding/json"
 	"fmt"
 	"net"
 	"os"
+	"strings"
 	"time"
 )
 
-/*Message is the message Structure*/
-type Message struct {
-	Body string
-	Date string
+var ControllerCreateChan = make(chan string)
+var ControllerDeleteChan = make(chan string)
+var ControllerListChan = make(chan net.Conn)
+
+type connAndName struct {
 }
 
-/*Clients are the current connections being handled
-TODO: Change to conn type, or create a new structure with conn in them
-*/
-var Clients []string
+/*MasterRoomMap is a map of the rooms in the server right now*/
 
 /*ServerInit initializes the server and its threads
 TODO: Add Remaning threads needed to be made
 */
 func ServerInit() {
 	fmt.Printf("Initializing Server\n")
-	Clients = make([]string, 0, 10)
-	//go ListenerThread()
-	go SenderThread()
+	go Controller()
 	ListenerConnThread()
-
-	fmt.Printf("Server INitialized")
-
-}
-
-/*SenderThread blocks on a channel that fills with messages users wish to send across to each other. ListenerMessages thread will handle sent messages and blace them in the channel
-TODO: Implement
-*/
-func SenderThread() {
+	//fmt.Printf("Server INitialized")
 
 }
 
@@ -63,42 +53,81 @@ func ListenerConnThread() {
 TODO: Decide if thread or function; Update to the new structure
 */
 func HandleNewClient(conn net.Conn) {
-	var found bool
-	if len(Clients) == 0 {
-		StartNewClient(conn)
-		found = true
-	} else {
-		adrs := conn.RemoteAddr().String()
-		for _, element := range Clients {
-			if element == adrs {
-				found = true
-				fmt.Printf("Found Client\n")
-				break
-			}
+	reader := json.NewDecoder(conn)
+	fmt.Println("Recieved new Client")
+
+	for {
+		if reader.More() {
+			fmt.Println("recieved msg")
+			msg := new(serverlib.Message)
+			reader.Decode(&msg)
+			HandleMessage(msg, conn)
 		}
 	}
 
-	if !found {
-		StartNewClient(conn)
-	}
-
-	//fmt.Println(msg)
-
-	//defer conn.Close()
-	daytime := time.Now().String()
-	conn.Write([]byte(daytime)) // don't care about return value
-	// we're finished with this client
 }
 
-/*StartNewClient is a simple function that adds a new Client called by HandleNewClient*/
-func StartNewClient(conn net.Conn) {
-	adrs := conn.RemoteAddr().String()
-	Clients = append(Clients, adrs)
-	var msg = Message{"Welcome to nib851 systems", time.Now().String()}
+/*HandleMessage handles the message*/
+func HandleMessage(msg *serverlib.Message, conn net.Conn) {
+	//get rid of /n
+	msg.Body = msg.Body[0 : len(msg.Body)-1]
+	split := strings.SplitN(msg.Body, " ", 3)
 
-	e := json.NewEncoder(conn)
-	e.Encode(msg)
-	fmt.Printf("Client array: %v\n", Clients)
+	switch split[0] {
+	case "/create":
+		name := split[1]
+
+		ControllerCreateChan <- name
+
+	case "/delete":
+		name := split[1]
+		ControllerDeleteChan <- name
+	case "/list":
+		ControllerListChan <- conn
+	case "/join":
+
+	case "/leave":
+
+	}
+
+}
+
+/*Controller adds and removes rooms to the master room map*/
+func Controller() {
+	MasterRoomMap := make(map[string]*serverlib.Room)
+
+	fmt.Println("Controller ready")
+	for {
+		select {
+		case roomname := <-ControllerCreateChan:
+			room := serverlib.NewRoom(roomname)
+			MasterRoomMap[room.Name] = room
+			go room.StartRoom()
+		case roomname := <-ControllerDeleteChan:
+			room := MasterRoomMap[roomname]
+			room.Deletechan <- true
+			delete(MasterRoomMap, roomname)
+		case conn := <-ControllerListChan:
+			var txt string
+			for key := range MasterRoomMap {
+				txt = txt + key
+			}
+			go Send(conn, txt)
+			//case roomname := <-ControllerJoinChan:
+
+			//MasterRoomMap[roomname].Joinchan <-
+		}
+	}
+
+}
+
+/*Send sends back msgs to a specific user, only used for error messages now*/
+func Send(conn net.Conn, txt string) {
+	msg := new(serverlib.Message)
+	msg.Body = txt
+	msg.Body = time.Now().String()
+	writer := json.NewEncoder(conn)
+	writer.Encode(msg)
 }
 
 func main() {
