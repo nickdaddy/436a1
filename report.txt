@@ -1,0 +1,11 @@
+Report
+Nicholas Brunoro
+nib851
+11131229
+
+Testing:
+The program has been tested with multiple clients in a real time environment. Clients tested all commands: create, leave, delete, join, and communicated to each other in chat rooms that they were in.
+
+Deleting rooms due to inactivity was tested by decreasing the timeframe to 10 seconds. Right now they are deleted at 100 Seconds just to prove it works, instead of the 7 days as it should.
+
+The programs have been tested on mac and linux and run fine on both. It should run on windows as well but must be compiled as described in the manual.

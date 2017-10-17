@@ -1,0 +1,18 @@
+Manual
+Nicholas Brunoro
+nib851
+11131229
+436a1
+
+Installation
+Prereq: Golang must be installed on the OS running this application. Your $GOPATH must be set and the root directory of this application must be placed into your $GOPATH/src
+
+I've supplied binaries that have been compiled on OSX10, but if you'd like to recompile on a different OS, place the entire directory into your $GOPATH/src.
+and run the shell script buildA1.sh inside. Doing so will place clientA1 and serverA1 binaries in your $GOPATH/bin. If your $PATH variable contains $GOPATH/bin you may invoke with clientA1 or serverA1 from any directory, otherwise go to $GOPATH/bin and invoke with ./clientA1 or ./serverA1
+
+serverA1 should be invoked with the port number you wish for
+clientA1 should be invoked with the privateIP:portnumber
+
+ex
+serverA1 33333
+clientA1 00.00.0.000:33333
