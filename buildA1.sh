@@ -9,4 +9,4 @@
 
 #cd $GOPATH/src
 go install ./serverA1/
-go install ./clientA1
+go install ./clientA1/

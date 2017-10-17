@@ -3,12 +3,10 @@ package main
 import (
 	"436a1repo/serverA1/serverlib"
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"net"
 	"os"
-	//"io/ioutil"
-	//"time"
-	"encoding/json"
 )
 
 var sendchan = make(chan string)
@@ -24,6 +22,11 @@ func main() {
 	if os.Args[1] == "-t" {
 		address = ":1260"
 	}
+
+	fmt.Println("Input a name for yourself")
+	reader := bufio.NewReader(os.Stdin)
+	name, _ = reader.ReadString('\n')
+
 	conn, err := net.Dial("tcp", address)
 	if err != nil {
 		// handle error
@@ -33,18 +36,15 @@ func main() {
 
 	fmt.Println("Hello welcome to 436a1NickGoChat with golang")
 	fmt.Println(`please use 436a1NickGoChat with the following commands:
-		/create			-->	creates a room
-		/join 			-->	joins a room
-		/leave 			-->	leaves a room
-		/delete 		--> deletes a room
-		/list				--> lists available rooms
-		/<roomname> --> where roomname is a room in the server. Do not include <>
-		/help				--> displays this message again
-		`)
+/create			-->	creates a room
+/join				-->	joins a room
+/leave 			-->	leaves a room
+/delete			--> deletes a room
+/list				--> lists available rooms
+/<roomname> --> where roomname is a room in the server. Do not include <>
+/quit				--> quit this program and leave all chat rooms
+/help				--> displays this message again`)
 
-	fmt.Println("Input a name for yourself")
-	reader := bufio.NewReader(os.Stdin)
-	name, _ = reader.ReadString('\n')
 	go ReadStdIn()
 	go Listen(conn)
 	Send(conn)
@@ -64,18 +64,22 @@ func ReadStdIn() {
 
 	for {
 		txt, _ := reader.ReadString('\n')
+
 		if txt[0] != '/' {
 			fmt.Println("Improper use of 436a1 Chat: all commands must be invoked with a '/' at the start. input /help if you need to be reminded of commands")
-		} else if txt == "/help " {
+		} else if txt == "/help\n" {
 			fmt.Println(`please use 436a1NickGoChat with the following commands:
-				/create			-->	creates a room
-				/join 			-->	joins a room
-				/leave 			-->	leaves a room
-				/delete 		--> deletes a room
-				/list				--> lists available rooms
-				/<roomname> --> where roomname is a room in the server. Do not include <>
-				/help				--> displays this message again
-				`)
+/create			-->	creates a room
+/join 			-->	joins a room
+/leave 			-->	leaves a room
+/delete 		--> deletes a room
+/list				--> lists available rooms
+/<roomname> --> where roomname is a room in the server. Do not include <>
+/quit				--> quit this program and leave all chat rooms
+/help				--> displays this message again`)
+		} else if txt == "/quit\n" {
+			fmt.Println("Shutting down ClientA1")
+			sendchan <- txt
 		} else {
 			sendchan <- txt
 
@@ -92,6 +96,9 @@ func Listen(conn net.Conn) {
 			msg := new(serverlib.Message)
 			decoder.Decode(msg)
 			fmt.Println(msg.Body)
+			if msg.Body == "exit" {
+				os.Exit(0)
+			}
 		}
 	}
 }

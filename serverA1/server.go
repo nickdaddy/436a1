@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -20,7 +21,9 @@ var controllerBroadcastChan = make(chan *serverlib.ConnPack)
 var controllerQuitChan = make(chan net.Conn)
 var port string
 var numclients = 0
+
 var cap = 10
+var numclientsmtx sync.Mutex
 
 /*ServerInit initializes the server and its threads
 TODO: Add Remaning threads needed to be made
@@ -48,13 +51,16 @@ func ListenerConnThread() {
 			os.Exit(1)
 		}
 
+		numclientsmtx.Lock()
 		if numclients < cap {
 			go HandleNewClient(conn)
-			cap++
+			numclients++
 		} else {
 			Send(conn, "Server is full please try again later")
+			Send(conn, "exit")
 			conn.Close()
 		}
+		numclientsmtx.Unlock()
 	}
 }
 
@@ -123,6 +129,9 @@ func HandleMessage(msg *serverlib.Message, conn net.Conn) {
 			errormsg := "ServerError: Room not left: not enough args: Must invoke with /join roomname."
 			go Send(conn, errormsg)
 		}
+
+	case "/quit":
+		controllerQuitChan <- conn
 
 	default:
 		if len(split) > 1 {
@@ -197,6 +206,15 @@ func Controller() {
 
 			go Send(conn, txt)
 
+		case conn := <-controllerQuitChan:
+			for _, r := range MasterRoomMap {
+				r.Leavechan <- conn
+			}
+			Send(conn, "exit")
+			conn.Close()
+			numclientsmtx.Lock()
+			numclients--
+			numclientsmtx.Unlock()
 		default:
 
 			for rname, r := range MasterRoomMap {
